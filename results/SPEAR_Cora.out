@@ -1,0 +1,92 @@
+Namespace(debug=True, no_cuda=False, seed=10, num_seeds=5, model='GCN', dataset='Cora', train_lr=0.01, weight_decay=0.0005, hidden=32, thrd=0.5, target_class=0, dropout=0.5, epochs=200, trojan_epochs=200, inner=1, trigger='SPEAR', ae_lr=0.0002, detector_lr=0.01, shadow_lr=0.0002, trojan_lr=0.0002, use_vs_number=True, vs_ratio=0, vs_number=40, defense_mode='none', prune_thr=0.8, target_loss_weight=1.0, dis_weight=1, test_model='GCN', device_id=5, trigger_size=3, homo_boost_thrd=0.8, homo_loss_weight=0.1, range=1.0, k=20, weight_target=1, weight_ood=1, weight_targetclass=1, alpha=0.02, alpha_int=30, outter_size=512, rec_epochs=100, ae_thr=97, c=1, a=0.0, b=0.0, conf_tau=0.1, lambda_unlearn=0.0, unlearn_mode='entropy', use_rigbd_training=False, graph_encoder='GCN', cuda=True)
+data statistics: data.x:  torch.Size([2708, 1433]), data.edge_index:torch.Size([2, 10556])
+Attach Nodes:40
+sorted_samples.pt not found, calling sort() to generate it.
+idx_attach: tensor([1625, 2314, 2313,  551, 2640, 1374, 2028, 1713,  943, 2421, 1741, 1511,
+        1277,  917,  630, 1790,  882, 2167,  802, 1700, 2639, 1609, 1197,  493,
+        1708,  677, 1690,  682, 2188, 2088, 1030, 1172, 1696,  668, 2013,   62,
+        1670, 1832, 1857,  446], device='cuda:5')
+Namespace(debug=True, no_cuda=False, seed=10, num_seeds=5, model='GCN', dataset='Cora', train_lr=0.01, weight_decay=0.0005, hidden=32, thrd=0.5, target_class=0, dropout=0.5, epochs=200, trojan_epochs=200, inner=1, trigger='SPEAR', ae_lr=0.0002, detector_lr=0.01, shadow_lr=0.0002, trojan_lr=0.0002, use_vs_number=True, vs_ratio=0, vs_number=40, defense_mode='none', prune_thr=0.8, target_loss_weight=1.0, dis_weight=1, test_model='GCN', device_id=5, trigger_size=3, homo_boost_thrd=0.8, homo_loss_weight=0.1, range=1.0, k=20, weight_target=1, weight_ood=1, weight_targetclass=1, alpha=0.02, alpha_int=30, outter_size=512, rec_epochs=100, ae_thr=97, c=1, a=0.0, b=0.0, conf_tau=0.1, lambda_unlearn=0.0, unlearn_mode='entropy', use_rigbd_training=False, graph_encoder='GCN', cuda=True)
+data statistics: data.x:  torch.Size([2708, 1433]), data.edge_index:torch.Size([2, 10556])
+Attach Nodes:40
+Loading selected samples from: /data1/mengtingp/CoGBD/sorted_samples/SPEAR/Cora/sorted_samples.pt
+idx_attach: tensor([1625, 2314, 2313,  551, 2640, 1374, 2028, 1713,  943, 2421, 1741, 1511,
+        1277,  917,  630, 1790,  882, 2167,  802, 1700, 2639, 1609, 1197,  493,
+        1708,  677, 1690,  682, 2188, 2088, 1030, 1172, 1696,  668, 2013,   62,
+        1670, 1832, 1857,  446], device='cuda:5')
+Epoch 0, loss_inner: 1.94586, loss_target: 1.94225, loss_sim: 0.16757
+ACC: 0.1109, ASR_train: 0.1750
+Epoch 50, loss_inner: 1.91736, loss_target: 1.88361, loss_sim: 0.16617
+ACC: 0.3919, ASR_train: 1.0000
+Epoch 100, loss_inner: 1.87233, loss_target: 1.66801, loss_sim: 0.18873
+ACC: 0.3974, ASR_train: 1.0000
+Epoch 150, loss_inner: 1.80631, loss_target: 1.24857, loss_sim: 0.19694
+ACC: 0.3919, ASR_train: 1.0000
+load best weight based on the loss outter1.2137925624847412
+dim: [  19   51  698  548 1175  877 1230  315  615  128   23  130 1203 1351
+   86  801 1381  904  510 1290 1393  103  591 1306  322 1219  136 1299
+  937  725]
+****** poison_x:torch.Size([2708, 1433]), poison_edge_index:torch.Size([2, 6898])
+Number of poisoned target nodes tensor(32, device='cuda:5')
+****Before Defense****
+ASR:0.874538779258728 Flip-ASR:0.8488889336585999
+flip_asr: 0.8489/225 nodes
+CA: 0.8370
+[Consistency][20/100] loss=0.0233 node=0.0233 neigh=0.1320 homo:0.1325
+[Consistency][40/100] loss=0.0133 node=0.0133 neigh=0.1350 homo:0.1355
+[Consistency][60/100] loss=0.0107 node=0.0107 neigh=0.1339 homo:0.1343
+[Consistency][80/100] loss=0.0095 node=0.0095 neigh=0.1350 homo:0.1354
+[Consistency][100/100] loss=0.0086 node=0.0086 neigh=0.1322 homo:0.1326
+number of true attached nodes: 32
+number of true trigger nodes: 0
+number of true poisoned nodes: 32
+number of detected nodes: 82
+
+for robusting training, num of abnormal nodes: 82
+[soft-ft] it=0 clean=1.9461 unlearn=-1.9250 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=50 clean=1.1323 unlearn=-1.3976 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=100 clean=0.6360 unlearn=-0.9612 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=150 clean=0.4705 unlearn=-0.7131 w_sup(mean)=0.658 w_unl(mean)=1.000
+****After Defense, on Seed265****
+ASR:0.0 Flip-ASR:0.0
+flip_asr: 0.0000/225 nodes
+CA: 0.8370
+[soft-ft] it=0 clean=1.9453 unlearn=-1.9331 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=50 clean=1.0481 unlearn=-0.9307 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=100 clean=0.5627 unlearn=-0.5591 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=150 clean=0.4142 unlearn=-0.4773 w_sup(mean)=0.658 w_unl(mean)=1.000
+****After Defense, on Seed125****
+ASR:0.0 Flip-ASR:0.0
+flip_asr: 0.0000/225 nodes
+CA: 0.8444
+[soft-ft] it=0 clean=1.9461 unlearn=-1.9044 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=50 clean=1.1008 unlearn=-1.0343 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=100 clean=0.5607 unlearn=-0.6303 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=150 clean=0.4278 unlearn=-0.5074 w_sup(mean)=0.658 w_unl(mean)=1.000
+****After Defense, on Seed996****
+ASR:0.0 Flip-ASR:0.0
+flip_asr: 0.0000/225 nodes
+CA: 0.8333
+[soft-ft] it=0 clean=1.9463 unlearn=-1.9100 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=50 clean=1.1855 unlearn=-1.1836 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=100 clean=0.6235 unlearn=-0.6134 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=150 clean=0.4362 unlearn=-0.6145 w_sup(mean)=0.658 w_unl(mean)=1.000
+****After Defense, on Seed527****
+ASR:0.0 Flip-ASR:0.0
+flip_asr: 0.0000/225 nodes
+CA: 0.8222
+[soft-ft] it=0 clean=1.9466 unlearn=-1.9207 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=50 clean=1.0983 unlearn=-1.1191 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=100 clean=0.6039 unlearn=-0.7447 w_sup(mean)=0.658 w_unl(mean)=1.000
+[soft-ft] it=150 clean=0.4528 unlearn=-0.6635 w_sup(mean)=0.658 w_unl(mean)=1.000
+****After Defense, on Seed320****
+ASR:0.0 Flip-ASR:0.0
+flip_asr: 0.0000/225 nodes
+CA: 0.8333
+======== Overall Results ========
+ASR: 0.0000 ± 0.0000
+CA: 0.8341 ± 0.0036
+=== Detection Performance ===
+[Attach Nodes]  TP: 32, FP: 50, FN: 0, Recall: 1.0000, Precision: 0.3902
+[Trigger Nodes] TP: 0, FP: 82, FN: 0, Recall: 0.0000, Precision: 0.0000
+[All Poisoned]  TP: 32, FP: 50, FN: 0, Recall: 1.0000, Precision: 0.3902
