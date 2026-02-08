@@ -8,7 +8,7 @@ Please make sure the following dependencies are installed before running the cod
 - **NumPy** == 1.26.3  
 - **PyTorch** == 2.7.1  
 - **PyTorch Geometric** == 2.6.1  
-- **scikit-learn-extra**
+- **Scikit-learn**==1.0.2
 - **ogb**
 - **deeprobust**
 
