@@ -20,7 +20,7 @@ def entropy(probabilities):
     return entropy
 
 def sort(data, args, idx_train, idx_val, device):
-    model = model_construct(args, args.model, data, device).to(device) #为什么这里是 target_model，而不是和surrogate_model一样
+    model = model_construct(args, args.model, data, device).to(device) 
     model.fit(data.x, data.edge_index, None, data.y, idx_train, idx_val, train_iters=args.epochs, verbose=False)
     model.eval()
     

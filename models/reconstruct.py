@@ -66,7 +66,7 @@ class MLPAE(nn.Module):
         with torch.no_grad():
             for sample in input:
                 reconstructed = self.model(sample)
-                loss = self.criterion(reconstructed, sample) #能否加入什么更好的识别
+                loss = self.criterion(reconstructed, sample)
                 reconstruction_errors.append(loss)
 
         # Convert the list of tensors to a single tensor
@@ -81,7 +81,7 @@ import torch.nn.functional as F
 import numpy as np
 from torch_geometric.nn import GCNConv
 
-# GCN-AE 实现（Encoder=GCNConv，Decoder=MLP）
+
 class GCNEncoder(nn.Module):
     def __init__(self, in_channels, hidden_channels, latent_channels):
         super(GCNEncoder, self).__init__()

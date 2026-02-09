@@ -147,11 +147,6 @@ class GAT(nn.Module):
                 b_unl: float = 2.0,              # gamma^b
                 reg_nodes: torch.Tensor = None,  
                 ):
-        """
-        全节点软权重版本:
-        - 所有训练节点：weighted NLL，权重 w_sup=(1-gamma)^a_sup 保护 CA
-        - 所有/指定节点：weighted unlearn，权重 w_unl=gamma^b_unl 压 ASR
-        """
         device = self.device
 
         # ---- to tensor ----

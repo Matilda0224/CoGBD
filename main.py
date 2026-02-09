@@ -189,7 +189,7 @@ elif args.trigger == 'UGBA':
     # idx_attach = torch.LongTensor(idx_attach).to(device)
 elif args.trigger in ['GTA', 'DPGBA']:
     from select_sample import obtain_attach_nodes
-    idx_attach = obtain_attach_nodes(args,unlabeled_idx,size) # 随机选择中毒节点位置 (UGBA: Appendix C; DPGBA)
+    idx_attach = obtain_attach_nodes(args,unlabeled_idx,size)
 print("idx_attach: {}".format(idx_attach))
 
 unlabeled_idx = torch.tensor(list(set(unlabeled_idx.cpu().numpy()) - set(idx_attach.cpu().numpy()))).to(device)
@@ -221,7 +221,7 @@ mask = mask.to(device)
 print('Number of poisoned target nodes', mask.sum())
 ## only attack those has groud truth labels != target_class ##
 idx_attach = idx_attach[(data.y[idx_attach] != args.target_class).nonzero().flatten()]
-bkd_tn_nodes = torch.cat([idx_train,idx_attach]).to(device) # bkd_tn_nodes和known_nodes有什么区别？ （bkd_tn_nodes 在 prune等之后可能会变）
+bkd_tn_nodes = torch.cat([idx_train,idx_attach]).to(device) 
 known_nodes = torch.cat([idx_train,idx_attach]).to(device)
 predictions = []
 # edge weight for clean edge_index, may use later #

@@ -64,7 +64,7 @@ class GraphSage(nn.Module):
                     self.rigbd_finetune(self.labels, idx_train, idx_val, attach, train_iters, verbose)
                 else:
                     self.finetune(self.labels, idx_train, idx_val, attach, train_iters, verbose, gamma, lambda_unlearn=lambda_unlearn, unlearn_mode=unlearn_mode)
-            else: # SPEAR中去掉了这个else, 导致RIGDB没有效果(加上else 在cora上 defense结果很强；在pubmed上 CA却很低)
+            else: 
                 self._train_with_val(self.labels, idx_train, idx_val, train_iters, verbose)
     # def fit(self, features, edge_index, edge_weight, labels, idx_train, idx_val=None, train_iters=200, verbose=False):
     #     self.edge_index, self.edge_weight = edge_index, edge_weight
@@ -100,12 +100,6 @@ class GraphSage(nn.Module):
             # ori
             target_probs = probs[range(len(labels[idx2])), labels[idx2]]
             loss_train_2 = torch.mean(target_probs)  # Mean of probabilities of correct labels
-
-            # 改进
-            # pred_classes = probs.argmax(dim=1)
-            # pred_probs = probs[range(len(pred_classes)), pred_classes]
-            # loss_train_2 = torch.mean(pred_probs)
-
 
             # Combining the normal and adversarial losses
             loss_train = loss_train + loss_train_2

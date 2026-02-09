@@ -163,7 +163,7 @@ class GCN(nn.Module):
         else:
             idx_train = idx_train.to(device)
         
-        gamma = gamma.to(device).clamp(0, 1) # 防止因为数值误差造成权重超界
+        gamma = gamma.to(device).clamp(0, 1)
 
         if idx_attach is None:
             reg_nodes = torch.arange(self.features.size(0), device=device)

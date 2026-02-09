@@ -108,7 +108,7 @@ class UGBA:
         self.args = args
         self.device = device
         self.weights = None
-        self.trigger_index = self.get_trigger_index(args.trigger_size) # 初始化为一个 full-connected 结构
+        self.trigger_index = self.get_trigger_index(args.trigger_size) 
     
     def get_trigger_index(self,trigger_size): 
         edge_list = []
