@@ -206,7 +206,6 @@ class GTA:
                 optimizer_shadow.step()
                 optimizer_trigger.step()
             
-            # 检查shadow_model的性能
             acc_train_clean = utils.accuracy(output[idx_train], self.labels[idx_train])
             acc_train_attach = utils.accuracy(output[idx_attach], self.labels[idx_attach])
             

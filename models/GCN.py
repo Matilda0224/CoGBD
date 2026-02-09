@@ -70,7 +70,7 @@ class GCN(nn.Module):
                 x = F.relu(conv(x, edge_index))
         return x
     
-    # def get_h(self, x, edge_index): # 除了SPEAR 都用这个get_h
+    # def get_h(self, x, edge_index): 
     #     for conv in self.convs:
     #             x = F.relu(conv(x, edge_index))
     #     return x
@@ -390,15 +390,12 @@ class ConsistencyDetector(nn.Module):
         self.epochs = int(epochs)
         self.add_selfloop_for_mean = add_selfloop_for_mean
 
-        # 训练用标量 MSE
         self.mse = nn.MSELoss(reduction="mean")
 
-        # 你传入的 gcn_encoder 是你那套 GCN(nfeat, nhid, nclass, ...)
         self.gcn = gcn_encoder
 
-        # 从 GCN 里读取维度（你初始化时已经有）
         nfeat = self.gcn.nfeat
-        nhid = self.gcn.hidden_sizes[0]  # 你的写法 hidden_sizes=[nhid]
+        nhid = self.gcn.hidden_sizes[0]
 
         self.model = Consistency(
             gcn_encoder=self.gcn,
@@ -457,7 +454,6 @@ class ConsistencyDetector(nn.Module):
         N = x.size(0)
         edge_index = self._prep_edge_index(edge_index,  N)
 
-        # 原视图
         _, x_hat, m_hat = self.model(x, edge_index)
         m = neighbor_mean(x, edge_index, N)
 

@@ -10,7 +10,6 @@ from models.GCN import GCN
 #%%
 class GradWhere(torch.autograd.Function):
     """
-    自定义前向/反向算子 ——离散化但保留梯度
     We can implement our own custom autograd Functions by subclassing
     torch.autograd.Function and implementing the forward and backward passes
     which operate on Tensors.
@@ -47,8 +46,6 @@ class GradWhere(torch.autograd.Function):
 
 class GraphTrojanNet(nn.Module):
     # Trigger generator: In the furture, we may use a GNN model to generate backdoor 
-    # 输入: 中毒节点的特征 nfeat [m,d]
-    # 输出: trigger 节点的特征 [m*nout, d], edge_weight: trigger内部可能的边（通过 GradWhere 阈值化得二值边选择）
     def __init__(self, device, nfeat, nout, layernum=1, dropout=0.00):
         super(GraphTrojanNet, self).__init__()
 
@@ -75,7 +72,7 @@ class GraphTrojanNet(nn.Module):
         sent into this function
         """
 
-        GW = GradWhere.apply #对 edge weights 做阈值化（0-1）离散化：前向：用 torch.where 把大于 thrd 的值置 1，小于 thrd 的置 0；反向：保留梯度，保证 trigger 结构仍可学习。
+        GW = GradWhere.apply 
         self.layers = self.layers
         h = self.layers(input)
 
@@ -85,19 +82,18 @@ class GraphTrojanNet(nn.Module):
         edge_weight = GW(edge_weight, thrd, self.device)
 
         # feat [B, nout*nfeat]
-        return feat, edge_weight # 这里的输出有结构
+        return feat, edge_weight
 
-class HomoLoss(nn.Module): # 约束trigger节点的特征相似性
+class HomoLoss(nn.Module): 
     def __init__(self,args,device):
         super(HomoLoss, self).__init__()
-        self.args = args #没用到
+        self.args = args 
         self.device = device
         
     def forward(self, trigger_edge_index, trigger_edge_weights, x, thrd):
         
-        # trigger_edge_index：trigger和attack node的连接，以及 trigger内部的连接
         trigger_edge_index = trigger_edge_index[:,trigger_edge_weights>0.0]
-        # 连接两边的余弦相似度
+
         edge_sims = F.cosine_similarity(x[trigger_edge_index[0]],x[trigger_edge_index[1]])
         
         loss = torch.relu(thrd - edge_sims).mean()
@@ -114,16 +110,16 @@ class UGBA:
         self.weights = None
         self.trigger_index = self.get_trigger_index(args.trigger_size) # 初始化为一个 full-connected 结构
     
-    def get_trigger_index(self,trigger_size): # 生成一个固定的： full-connected 子图结构模版
+    def get_trigger_index(self,trigger_size): 
         edge_list = []
-        edge_list.append([0,0]) # 占位，后续被替换为 （宿主节点 id, 新加 trigger 节点的起始 id)
+        edge_list.append([0,0]) 
         for j in range(trigger_size):
             for k in range(j):
                 edge_list.append([j,k])
         edge_index = torch.tensor(edge_list,device=self.device).long().T #edge_index
-        return edge_index # [2,E] 第一行为 起点节点编号；第二行为 终点节点编号
+        return edge_index # [2,E] 
 
-    def get_trojan_edge(self,start, idx_attach, trigger_size): # 将trigger挂载到 attack节点 上，使trigger的节点和边的编号和原图统一
+    def get_trojan_edge(self,start, idx_attach, trigger_size): 
         edge_list = []
         for idx in idx_attach:
             edges = self.trigger_index.clone()
@@ -148,22 +144,17 @@ class UGBA:
         features = features.to(device)
         edge_index = edge_index.to(device)
         edge_weight = edge_weight.to(device)
-        self.trojan.eval() # 利用已经训练好的 trigger generator
+        self.trojan.eval() 
 
-        # 1. 生成trigger node feature 和 edge weights
         trojan_feat, trojan_weights = self.trojan(features[idx_attach],self.args.thrd) # may revise the process of generate
-        
-        # 2. 拼接 trigger 的边权向量 (和attack node 之间的边权重为 1)
+
         trojan_weights = torch.cat([torch.ones([len(idx_attach),1],dtype=torch.float,device=device),trojan_weights],dim=1)
         trojan_weights = trojan_weights.flatten()
 
-        # 3. 整理 trigger 节点特征矩阵：把所有 trigger 节点的特征展平堆叠为一个矩阵 [num_trigger_nodes, d]
         trojan_feat = trojan_feat.view([-1,features.shape[1]])
 
-        # 4. 构建 trigger 边索引矩阵: 每个 attach 节点都会被连接一个 trigger 子图,trigger 子图编号从 len(features) 开始递增
         trojan_edge = self.get_trojan_edge(len(features),idx_attach,self.args.trigger_size).to(device)
 
-        # 5. 拼接回原图，生成“中毒图”
         update_edge_weights = torch.cat([edge_weight,trojan_weights,trojan_weights])
         update_feat = torch.cat([features,trojan_feat])
         update_edge_index = torch.cat([edge_index,trojan_edge],dim=1)
@@ -177,7 +168,6 @@ class UGBA:
 
 
     def fit(self, features, edge_index, edge_weight, labels, idx_train, idx_attach,idx_unlabeled):
-        # trigger generator 与 shadow model 交替优化参数
         args = self.args
         if edge_weight is None:
             edge_weight = torch.ones([edge_index.shape[1]],device=self.device,dtype=torch.float)
@@ -203,8 +193,6 @@ class UGBA:
         self.labels = labels.clone()
         self.labels[idx_attach] = args.target_class
 
-        # 4. 初始化‘trigger’结构模版： 为每个 attach 节点构造一个 trigger 子图（固定结构 + 偏移索引），并连上宿主节点。
-        # 注意：这里trigger节点的具体feature和边权还没生成
         # get the trojan edges, which include the target-trigger edge and the edges among trigger
         trojan_edge = self.get_trojan_edge(len(features),idx_attach,args.trigger_size).to(self.device)
         # update the poisoned graph's edge index
@@ -214,46 +202,38 @@ class UGBA:
         # furture change it to bilevel optimization
         loss_best = 1e8
         for i in range(args.trojan_epochs):
-            self.trojan.train()# 为什么这里是 trojan.train()?
+            self.trojan.train()# 
             for j in range(self.args.inner):
-                # 5. 内层： 更新 shadow_model
+         
                 optimizer_shadow.zero_grad()
-                # 5.1： 得到trigger generator生成的trigger特征和边权重 （ args.thrd: 二值化阈值 >thrd → 边存在)
                 trojan_feat, trojan_weights = self.trojan(features[idx_attach],args.thrd) # may revise the process of generate
-                # 为每个宿主节点与第一个 trigger 节点间的边权设为 1（保证触发器连接）; 然后展开为 1D 向量，与 trigger 边索引顺序匹配。
                 trojan_weights = torch.cat([torch.ones([len(trojan_feat),1],dtype=torch.float,device=self.device),trojan_weights],dim=1)
                 trojan_weights = trojan_weights.flatten()
-                # 拼接新的节点特征, 拼接边权 (重复两次是因为图被双向化)
                 trojan_feat = trojan_feat.view([-1,features.shape[1]])
-                poison_edge_weights = torch.cat([edge_weight,trojan_weights,trojan_weights]).detach() #虽然self.trojan.train()，但是并不会对trojan进行反向传播
+                poison_edge_weights = torch.cat([edge_weight,trojan_weights,trojan_weights]).detach()
                 poison_x = torch.cat([features,trojan_feat]).detach()
-                # shadow_model返回 log_softmax之后的结果
                 output,_ = self.shadow_model(poison_x, poison_edge_index, poison_edge_weights)
-                # 内层目标： Shadow 模型在带 trigger 的毒化图上训练， 能正确预测带有trigger的点为target class
                 loss_inner = F.nll_loss(output[torch.cat([idx_train,idx_attach])], self.labels[torch.cat([idx_train,idx_attach])]) # add our adaptive loss
                 loss_inner.backward()
                 optimizer_shadow.step()
 
-            # 检查shadow_model的性能
             acc_train_clean = utils.accuracy(output[idx_train], self.labels[idx_train])
             acc_train_attach = utils.accuracy(output[idx_attach], self.labels[idx_attach])
-            
-            # 6. 外层： 优化 trigger generator
+   
             # involve unlabeled nodes in outter optimization
-            self.trojan.eval() # 为什么这里却是 eval()? 这里根本不需要把（SPEA中去掉了）
+            self.trojan.eval()
             optimizer_trigger.zero_grad()
 
             rs = np.random.RandomState(self.args.seed)
-            # 6.1. SPEAR follow it: 从unlabel idx中选择512个节点一起参与 trigger generator 更新
+
             idx_outter = torch.cat([idx_attach,idx_unlabeled[rs.choice(len(idx_unlabeled),size=args.outter_size,replace=False)]])
-            # 6.2. 重新生成trigger 
+     
             trojan_feat, trojan_weights = self.trojan(features[idx_outter],self.args.thrd) # may revise the process of generate
 
             trojan_weights = torch.cat([torch.ones([len(idx_outter),1],dtype=torch.float,device=self.device),trojan_weights],dim=1)
             trojan_weights = trojan_weights.flatten()
 
             trojan_feat = trojan_feat.view([-1,features.shape[1]])
-            # 6.3. 将新的 trigger 节点、边、权拼接到图上
             trojan_edge = self.get_trojan_edge(len(features),idx_outter,self.args.trigger_size).to(self.device)
 
             update_edge_weights = torch.cat([edge_weight,trojan_weights,trojan_weights])
@@ -264,13 +244,12 @@ class UGBA:
 
             labels_outter = labels.clone()
             labels_outter[idx_outter] = args.target_class
-            # 6.4. 让 shadow model 把中毒节点 + 未标注节点尽可能预测为目标类
+
             loss_target = self.args.target_loss_weight *F.nll_loss(output[torch.cat([idx_train,idx_outter])],
                                     labels_outter[torch.cat([idx_train,idx_outter])])
             loss_homo = 0.0
 
             if(self.args.homo_loss_weight > 0):
-                # 6.5. 加入同质性loss: 让 trigger 节点间的特征更相似、更自然
                 loss_homo = self.homo_loss(trojan_edge[:,:int(trojan_edge.shape[1]/2)],\
                                             trojan_weights,\
                                             update_feat,\

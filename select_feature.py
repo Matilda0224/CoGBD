@@ -95,7 +95,6 @@ data, idx_train, idx_val, idx_clean_test, idx_atk = get_split(args,data,device)
 print(f'split: idx_train: {len(idx_train)},idx_val :{len(idx_val)}, idx_clean_test:{len(idx_clean_test)}, idx_atk:{len(idx_atk)} ')
 import sage_modified as sage
 
-# 为什么这里是完整的图？ 按道理attacker只能接触到训练图
 pre_train = model_construct(args,args.model,data,device).to(device)
 pre_train.fit(data.x, data.y, idx_train, idx_val, train_iters=args.epochs,verbose=False)
 
@@ -104,12 +103,12 @@ num_classes = torch.max(y) + 1
 y = torch.nn.functional.one_hot(y, num_classes=num_classes).cpu().numpy()
 feature_names = [str(i) for i in range(0, data.x.shape[1])]
 
-model = pre_train.to('cpu') # model在 device上
+model = pre_train.to('cpu')
 import time 
 start  = time.time()
 imputer = sage.MarginalImputer(model, x[:args.sample_num])
 estimator = sage.PermutationEstimator(imputer, 'mse')
-sage_values = estimator(x, y) # x,y在cpu
+sage_values = estimator(x, y)
 val, std = sage_values.save_num()
 end = time.time()
 

@@ -83,7 +83,7 @@ class GAT(nn.Module):
                     self.rigbd_finetune(self.labels, idx_train, idx_val, attach, train_iters, verbose)
                 else:
                     self.finetune(self.labels, idx_train, idx_val, attach, train_iters, verbose, gamma, lambda_unlearn=lambda_unlearn, unlearn_mode=unlearn_mode)
-            else: # SPEAR中去掉了这个else, 导致RIGDB没有效果(加上else 在cora上 defense结果很强；在pubmed上 CA却很低)
+            else: 
                 self._train_with_val(self.labels, idx_train, idx_val, train_iters, verbose)
 
     # def fit(self, features, edge_index, edge_weight, labels, idx_train, idx_val=None, train_iters=200, initialize=True, verbose=False):
@@ -145,7 +145,7 @@ class GAT(nn.Module):
                 unlearn_mode: str = "entropy",   # "entropy" or "maxprob"
                 a_sup: float = 2.0,              # (1-gamma)^a
                 b_unl: float = 2.0,              # gamma^b
-                reg_nodes: torch.Tensor = None,  # 你想在哪些节点上做 unlearn（None=全图）
+                reg_nodes: torch.Tensor = None,  
                 ):
         """
         全节点软权重版本:
@@ -160,10 +160,9 @@ class GAT(nn.Module):
         else:
             idx_train = idx_train.to(device)
         
-        gamma = gamma.to(device).clamp(0, 1) # 防止因为数值误差造成权重超界
+        gamma = gamma.to(device).clamp(0, 1) 
 
         if idx_attach is None:
-            # 所有节点上做 unlearn 正则？
             reg_nodes = torch.arange(self.features.size(0), device=device)
         else:
             reg_nodes = idx_attach
@@ -177,22 +176,17 @@ class GAT(nn.Module):
             logp, _ = self.forward(self.features, self.edge_index, self.edge_weight)  # log_softmax [N,C]
 
             # ===== 1) weighted supervised loss on idx_train =====
-            # per-node NLL 所有训练节点的损失
             nll = F.nll_loss(logp[idx_train], labels[idx_train], reduction='none')  # [n_train]
-            # 训练节点中可能有异常节点：gamma越大 -> 1-gamma越小 -> 监督权重越小
-            w_sup = (1.0 - gamma[idx_train]).pow(a_sup).clamp_min(1e-6)            # [n_train]， a_sup控制衰减速度。=1时为线性衰减，过快
+            w_sup = (1.0 - gamma[idx_train]).pow(a_sup).clamp_min(1e-6)            # [n_train]，
             loss_clean = (w_sup * nll).sum() / (w_sup.sum() + 1e-12)
 
             # ===== 2) weighted unlearn regularizer on reg_nodes =====
             probs = torch.softmax(logp[reg_nodes], dim=1)                           # [m,C]
-            # 对全图做unlearn? gamma越大，unlearn权重越大
             w_unl = gamma[reg_nodes].pow(b_unl).clamp_min(1e-12)                    # [m]
 
             if unlearn_mode == "maxprob":
-                # 每个节点去最大类别概率，并且最小化它 压低节点最大预测置信度（更强硬、压 ASR 更直接）
                 reg = probs.max(dim=1).values                                       # [m]
             elif unlearn_mode == "entropy":
-                # 增大预测熵（更平滑，通常更稳、更保 CA）
                 # minimize sum p log p  <=> maximize entropy
                 reg = (probs * probs.clamp_min(1e-12).log()).sum(dim=1)             # [m]
             else:

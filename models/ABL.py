@@ -9,10 +9,7 @@ import torch.optim as optim
 import utils
 from copy import deepcopy
 
-# import heuristic_selection as hs
-# ABL：defense by unlearning backdoor
-# 后门攻击：target node因为被注入了强触发特征（如某种特定 pattern），模型容易快速拟合，因此：在训练初期对训练样本的 loss 排序，loss 低的往往就是 backdoor 样本。
-# 因此，ABL 对可疑样本执行：反向梯度（Gradient Ascent）：提高它们的 loss，从而“忘记 backdoor”；同时对 clean 样本正常训练，让模型保留 clean 性能
+
 class ABL(nn.Module):
     def __init__(self, args, model_name, model, isolation_ratio, threshold, loss_increse_threshold, isolate_epoch, device):
         super(ABL, self).__init__()
@@ -27,7 +24,7 @@ class ABL(nn.Module):
         self.isolation_ratio = isolation_ratio  # 0.01
 
     def compute_loss_value(self,idx_train):
-        # 用 sur_model 对每个训练样本计算 loss。按 loss 从小到大排序，loss 越小 → 模型越早拟合 → 更可能是 backdoor 样本
+
         criterion = nn.NLLLoss(reduction = 'none').to(self.device)
         self.sur_model.eval()
         with torch.no_grad():
@@ -119,7 +116,6 @@ class ABL(nn.Module):
                 idx_isolated, idx_clean = self.isolate_data(idx_train)
                 
             if(i < isolate_epoch):
-                # 识别 backdoor 样本 ： 用 sur_model 在 idx_train 上正常训练并计算 loss，对样本排序，识别疑似后门样本 idx_isolated
                 threshold = self.threshold
                 optimizer.zero_grad()
                 output = self.forward(self.features, self.edge_index, self.edge_weight)
@@ -131,7 +127,6 @@ class ABL(nn.Module):
             else:
 
                 # rs_edge_index, rs_edge_weight = self.sample_noise_all(self.prob_drop, self.edge_index, self.edge_weight, self.device)
-                # 消除 backdoor，同时保持 clean 准确率：对 idx_isolated 做 反向梯度（loss ascent），对 idx_clean 正常训练
                 output = self.forward(self.features, self.edge_index, self.edge_weight)
                 optimizer.zero_grad()
                 loss_train_isolated = -1 * F.nll_loss(output[idx_isolated], labels[idx_isolated])

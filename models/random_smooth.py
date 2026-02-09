@@ -20,7 +20,6 @@ class RS(nn.Module):
         self.device = device
 
     def sample_noise_all(self, prob_drop, edge_index, edge_weight,device):
-        # 随机采样多个子图版本，通过随机丢边（drop edge）来“平滑”结构 （当 prob_drop = β > 0.5 时，意味着平均每个图只有一半边被保留，）
         prob_retain = 1 - prob_drop
         noisy_edge_index = edge_index.clone().detach()
         if(edge_weight == None):

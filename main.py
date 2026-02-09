@@ -169,9 +169,7 @@ train_edge_index,_, edge_mask = subgraph(torch.bitwise_not(data.test_mask),data.
 mask_edge_index = data.edge_index[:,torch.bitwise_not(edge_mask)]
 
 
-# from models.backdoor_GCN_cos import Backdoor
 from models.construct import model_construct
-
 
 unlabeled_idx = (torch.bitwise_not(data.test_mask)&torch.bitwise_not(data.train_mask)).nonzero().flatten()
 if(args.use_vs_number):

@@ -118,7 +118,6 @@ mask_edge_index = data.edge_index[:,torch.bitwise_not(edge_mask)]
 import os
 from models.construct import model_construct
 
-# 在没有污染的图上，直接用defense
 from help_funcs import detect_and_prune_by_homodominant, detect_by_detector
 train_edge_index,_ , abnormal_nodes, gamma, detector = detect_and_prune_by_homodominant(args, data, data.x, train_edge_index, None,device)
 # poison_edge_index, poison_edge_weights, abnormal_nodes = detect_by_dominant_and_prune(args,poison_edge_index,poison_edge_weights,poison_x,device)
@@ -165,15 +164,13 @@ for seed in seeds:
 
 ca_arr = np.array([t.item() if torch.is_tensor(t) else t for t in list_ca], dtype=float)
 
-n = len(list_ca)  # 种子数量
+n = len(list_ca)  
 
-# ===== 均值 =====
 mean_ca = np.mean(ca_arr)
 avg_time = avg_time / n
 
-# ===== 均方误差（standard error of the mean, SEM）=====
 sem_ca = np.std(ca_arr, ddof=1) / np.sqrt(n)
-# ===== 保留四位小数 =====
+
 print("======== Overall Results ========")
 print(f"CA: {mean_ca:.4f} ± {sem_ca:.4f}")    
 print("Avg time elapsed: {:.4f}s".format(avg_time))

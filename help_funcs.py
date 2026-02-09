@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch_geometric.utils import to_dense_adj,dense_to_sparse
 import torch
 import scipy.sparse as sp
-from models.reconstruct import MLPAE, PyGDominant, DominantDetector
+from models.reconstruct import MLPAE
 from models.DOMINANT import Dominant
 
 def prune_unrelated_edge(args,edge_index,edge_weights,x,device,large_graph=True):
@@ -110,7 +110,7 @@ def detect_and_prune_by_consistency_detector(
     data,
     x: torch.Tensor,                 # [N, F]
     edge_index: torch.Tensor,         # [2, E]
-    edge_weight: torch.Tensor = None, # optional, 不用也行
+    edge_weight: torch.Tensor = None,
     device: torch.device = None,
 ):
 

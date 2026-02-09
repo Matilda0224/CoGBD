@@ -10,8 +10,6 @@ import numpy as np
 import os
 
 class GraphTrojanNet(nn.Module):
-    # 一个小型MLP，用于生成trigger的feature
-    # 输入 node embedding (中毒节点的 node embedding), 输出 trigger embedding
     # In the furture, we may use a GNN model to generate backdoor
     def __init__(self, device, nfeat, dim_num, layernum=2, dropout=0.00):
         super(GraphTrojanNet, self).__init__()
@@ -31,13 +29,13 @@ class GraphTrojanNet(nn.Module):
         self.edge = nn.Linear(nfeat, int(dim_num*(dim_num-1)/2))
         self.device = device
 
-    def forward(self, input, thrd):  #这个thrd没有用到？
+    def forward(self, input, thrd):  
         self.layers = self.layers
         h = self.layers(input)
         feat = self.feat(h)
         return feat
 
-class HomoLoss(nn.Module): #约束 injected trigger 内部一致性（这是UGBA中的约束，这里没有用到）
+class HomoLoss(nn.Module):
     def __init__(self,args,device):
         super(HomoLoss, self).__init__()
         self.args = args
@@ -62,17 +60,16 @@ class SPEAR:
         self.weights = None
         
     def inject_trigger(self, idx_attach, features,edge_index,edge_weight,device):
-    # 输入：idx_attach 中毒节点index 和原图结构 features, edge_index
-    # 输出L修改后的特征节点 update_feat,和unchanged 的 edge_index（因为结构其实没有动）
+
         self.trojan = self.trojan.to(device)
         idx_attach = idx_attach.to(device)
         features = features.to(device)
         edge_index = edge_index.to(device)
         edge_weight = edge_weight.to(device)
-        self.trojan.eval() #已经训练好了，可以直接使用
+        self.trojan.eval()
         self.shadow_model.eval()
-        embed = self.shadow_model.get_h(features, edge_index) # 先到的node emb
-        # 这个thrd没有用到
+        embed = self.shadow_model.get_h(features, edge_index) 
+
         trojan_feat = self.trojan(embed[idx_attach],self.args.thrd) # may revise the process of generate
         update_edge_weights = edge_weight.clone()
         update_feat = features.clone()
@@ -96,7 +93,7 @@ class SPEAR:
         dim_all = np.load(file_path)
         dim = np.argsort(dim_all)[::-1][:dim_num]
         dim = dim.copy()
-        update_feat[idx_attach[:, None], dim] = trojan_feat.detach() # 将对应维度 dim 替换为 trigger的feature
+        update_feat[idx_attach[:, None], dim] = trojan_feat.detach() 
 
         update_edge_index = edge_index.clone()
 
@@ -105,9 +102,9 @@ class SPEAR:
         features = features.cpu()
         edge_index = edge_index.cpu()
         edge_weight = edge_weight.cpu()
-        return update_feat, update_edge_index, update_edge_weights # edge_index前后不变
+        return update_feat, update_edge_index, update_edge_weights 
 
-    def get_h(self, x, edge_index): # SPEAR的实现中没有用到：get_h在GCN内部，共享aggregation参数和结果效果比普通 aggregation好
+    def get_h(self, x, edge_index): 
 
         for conv in self.shadow_model.convs:
             x = F.relu(conv(x, edge_index))
@@ -122,9 +119,8 @@ class SPEAR:
         self.idx_attach = idx_attach
         self.features = features 
         self.edge_index = edge_index
-        self.edge_weights = edge_weight #都是训练图，不是完整图
+        self.edge_weights = edge_weight 
         
-        # 1. initial a shadow model (模拟 victim model)：对应 L_inner: shadow 模型在 poisoned data 上的训练损失
         self.shadow_model = GCN(nfeat=features.shape[1],
                          nhid=self.args.hidden,
                          nclass=labels.max().item() + 1,
@@ -148,7 +144,6 @@ class SPEAR:
         dim = dim.copy()
 
         embed = self.shadow_model.get_h(features, edge_index)
-        # 3.初始化 trigger 生成器：对应 L_outer: 攻击成功率 + 隐蔽性
         self.trojan = GraphTrojanNet(self.device, embed.shape[1], dim_num, layernum=2).to(self.device)
         self.homo_loss = HomoLoss(self.args,self.device)
 
@@ -167,19 +162,17 @@ class SPEAR:
         for i in range(args.trojan_epochs):
             self.trojan.train()
             for j in range(self.args.inner):
-                #4. 内层: 优化shadow，让 shadow 模型在当前的 污染训练图 上（包含 attach 节点）尽量拟合正确标签
                 optimizer_shadow.zero_grad()
 
                 #trojan_feat is a alpha_int dimension feature that serves as trigger and will be implemented in fearture space
-                embed = self.shadow_model.get_h(poison_x, edge_index) # 通过shadow model得到节点嵌入
-                trojan_feat= self.trojan(embed[idx_attach],args.thrd) # Trojan 生成triggerr征 （
+                embed = self.shadow_model.get_h(poison_x, edge_index) 
+                trojan_feat= self.trojan(embed[idx_attach],args.thrd) 
                 poison_edge_weights = edge_weight.detach()
-                poison_x = features.clone().detach() #这里为什么？
-                poison_x[idx_attach[:, None], dim] = trojan_feat.detach() # 将对应维度 替换中毒node emb，得到污染特征
+                poison_x = features.clone().detach()
+                poison_x[idx_attach[:, None], dim] = trojan_feat.detach() 
                 
                 output,_ = self.shadow_model(poison_x, edge_index, poison_edge_weights) # 
                 
-                # Shadow model 适应被污染的数据分布
                 loss_inner = F.nll_loss(output[torch.cat([idx_train,idx_attach])], self.labels[torch.cat([idx_train,idx_attach])]) # add our adaptive loss
                 
                 loss_inner.backward()
@@ -189,34 +182,30 @@ class SPEAR:
             acc_train_clean = utils.accuracy(output[idx_train], self.labels[idx_train])
             acc_train_attach = utils.accuracy(output[idx_attach], self.labels[idx_attach])
             
-            # 5. 外层： 优化trigger生成器，在保证隐蔽性的同时，让攻击节点（attach）和随机挑的 unlabeled 节点（outter）被模型误导到目标类别
             optimizer_trigger.zero_grad()
             rs = np.random.RandomState(self.args.seed)
 
-            # 随机挑选 部分 未标记的节点
             outter = idx_unlabeled[rs.choice(len(idx_unlabeled),size=args.outter_size,replace=False)]
 
-            # 组合中毒节点 + 随机挑选的未标记节点
             idx_outter = torch.cat([idx_attach,outter])
 
-            embed = self.shadow_model.get_h(poison_x, edge_index) # 通过shadow model得到节点嵌入
-            # Trojan 为中毒节点+随机节点生成 trigger特征
+            embed = self.shadow_model.get_h(poison_x, edge_index)
+
             trojan_feat = self.trojan(embed[idx_outter],args.thrd) # may revise the process of generate
         
             update_feat = features.clone()
-            update_feat[idx_outter[:, None], dim] = trojan_feat # 替换中毒+随机node emb，得到更新后的特征
+            update_feat[idx_outter[:, None], dim] = trojan_feat 
 
             output,_ = self.shadow_model(update_feat, edge_index, edge_weight)
 
             labels_outter = labels.clone()
-            labels_outter[idx_outter] = args.target_class #随机挑选的节点也要替换class
+            labels_outter[idx_outter] = args.target_class
 
-            loss_sim = 1 - F.cosine_similarity(update_feat, self.features).mean() # 约束生成的特征与原特征尽量接近
+            loss_sim = 1 - F.cosine_similarity(update_feat, self.features).mean() 
 
             loss_target = self.args.target_loss_weight *F.nll_loss(output[torch.cat([idx_train,idx_outter])],
-                                    labels_outter[torch.cat([idx_train,idx_outter])]) # 约束生成的特征要尽量保持预测准确
+                                    labels_outter[torch.cat([idx_train,idx_outter])]) 
 
-            # loss_target：攻击有效性；self.args.homo_loss_weight：攻击隐蔽性
             loss_outter = loss_target  + self.args.homo_loss_weight * loss_sim
 
             loss_outter.backward()
@@ -237,17 +226,11 @@ class SPEAR:
         self.trojan.load_state_dict(self.weights)
         self.trojan.eval()
 
-        # os.makedirs("checkpoints", exist_ok=True)
-        # PATH = f"checkpoints/model_weights_{args.dataset}.pth"
-
-        # # 假设 self.trojan 是训练好的 GraphTrojanNet/torch.nn.Module
-        # torch.save(self.trojan.state_dict(), PATH)
-        # print("Saved trojan state_dict to", PATH)
 
 
     def get_poisoned(self):
         with torch.no_grad():
             poison_x, poison_edge_index, poison_edge_weights = self.inject_trigger(self.idx_attach,self.features,self.edge_index,self.edge_weights,self.device)
-        poison_labels = self.labels #只对中毒节点的label进行修改
+        poison_labels = self.labels 
         return poison_x, poison_edge_index, poison_edge_weights, poison_labels
 
